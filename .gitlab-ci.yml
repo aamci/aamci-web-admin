@@ -1,16 +1,19 @@
 # ─── CI/CD — Web Admin Next.js (@health/web-admin) ───────────────────────────
 #
-# Pipeline autonome déclenché par le pipeline racine via `trigger: include:`.
-# Peut aussi être utilisé directement sur le dépôt de l'app si nécessaire.
+# Pipeline autonome — à configurer comme CI config path dans le projet GitLab :
+#   Settings → CI/CD → General pipelines → CI/CD configuration file
+#   → apps/web-admin/.gitlab-ci.yml
 #
-# Déclencheurs (gérés par le pipeline racine) :
-#   • Push sur une branche / MR     → test
-#   • Push sur main                 → test + build image + deploy staging
-#   • Tag web-admin/v*.*.*          → test + build image + deploy production (manuel)
+# Déclencheurs :
+#   • Push sur n'importe quelle branche / MR   → test
+#   • Push sur main                            → test + build image + deploy staging
+#   • Tag web-admin/v*.*.*                     → test + build image + deploy production (manuel)
 #
 # Variables à configurer (GitLab → Settings → CI/CD → Variables) :
 #   WEB_ADMIN_STAGING_DEPLOY_HOOK      URL webhook staging
 #   WEB_ADMIN_PROD_DEPLOY_HOOK         URL webhook production
+#   WEB_ADMIN_STAGING_URL              URL publique staging
+#   WEB_ADMIN_PROD_URL                 URL publique production
 #   NEXT_PUBLIC_API_BASE_URL_STAGING   URL API pour l'image staging
 #   NEXT_PUBLIC_API_BASE_URL_PROD      URL API pour l'image production
 
@@ -25,7 +28,19 @@ stages:
   before_script:
     - corepack enable
     - corepack prepare pnpm@9 --activate
-    - pnpm install --frozen-lockfile
+    - pnpm install --no-frozen-lockfile
+
+# ── Validation README ─────────────────────────────────────────────────────────
+
+validate:readme:web-admin:
+  image: node:20-alpine
+  stage: test
+  rules:
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
+  script:
+    - node scripts/validate-readme.js
+  allow_failure: false
 
 # ── Test ──────────────────────────────────────────────────────────────────────
 
@@ -36,12 +51,11 @@ test:web-admin:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
   script:
-    - cd apps/web-admin
     - pnpm test:run
   coverage: '/Lines\s*:\s*\d+\.?\d+%/'
   artifacts:
     paths:
-      - apps/web-admin/coverage/
+      - coverage/
     expire_in: 1 week
 
 # ── Build image Docker (staging) ──────────────────────────────────────────────
@@ -59,8 +73,8 @@ build:web-admin:staging:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64)\"}}}" > /kaniko/.docker/config.json
   script:
     - /kaniko/executor
-      --context "$CI_PROJECT_DIR/apps/web-admin"
-      --dockerfile "$CI_PROJECT_DIR/apps/web-admin/Dockerfile"
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
       --destination "$CI_REGISTRY_IMAGE/web-admin:$CI_COMMIT_SHORT_SHA"
       --destination "$CI_REGISTRY_IMAGE/web-admin:staging"
       --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_STAGING"
@@ -80,8 +94,8 @@ build:web-admin:production:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64)\"}}}" > /kaniko/.docker/config.json
   script:
     - /kaniko/executor
-      --context "$CI_PROJECT_DIR/apps/web-admin"
-      --dockerfile "$CI_PROJECT_DIR/apps/web-admin/Dockerfile"
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
       --destination "$CI_REGISTRY_IMAGE/web-admin:$CI_COMMIT_TAG"
       --destination "$CI_REGISTRY_IMAGE/web-admin:latest"
       --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_PROD"

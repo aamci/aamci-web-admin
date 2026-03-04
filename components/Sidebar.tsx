@@ -16,6 +16,9 @@ import {
   Building2,
   ClipboardList,
   Settings,
+  FileText,
+  BarChart2,
+  MessageSquare,
 } from 'lucide-react';
 
 const navGroups = [
@@ -33,12 +36,20 @@ const navGroups = [
       { href: '/facilities', label: 'Établissements', icon: Building2 },
       { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
       { href: '/transactions', label: 'Transactions', icon: CreditCard },
+      { href: '/contracts', label: 'Contrats', icon: FileText },
+      { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
+    ],
+  },
+  {
+    label: 'Analytiques',
+    items: [
+      { href: '/statistics', label: 'Statistiques', icon: BarChart2 },
     ],
   },
   {
     label: 'Système',
     items: [
-      { href: '/audit', label: 'Journal d\'audit', icon: ClipboardList },
+      { href: '/audit', label: "Journal d'audit", icon: ClipboardList },
       { href: '/settings', label: 'Paramètres', icon: Settings },
       { href: '/encryption', label: 'Chiffrement', icon: ShieldCheck },
     ],
