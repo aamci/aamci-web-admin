@@ -37,8 +37,9 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
+      const token = data.token || data.access_token;
+      if (token) {
+        localStorage.setItem('token', token);
       }
 
       await login();
@@ -46,11 +47,11 @@ export default function LoginPage() {
       // Check role after login
       const meBase = base || '';
       const meUrl = meBase ? `${meBase}/auth/me` : '/api/auth/me';
-      const token = localStorage.getItem('token');
+      const savedToken = localStorage.getItem('token');
       const meRes = await fetch(meUrl, {
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(savedToken ? { Authorization: `Bearer ${savedToken}` } : {}),
         },
         credentials: 'include',
       });
