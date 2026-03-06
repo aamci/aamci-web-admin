@@ -86,7 +86,7 @@ interface UserDetail {
   doctorProfile?: DoctorProfile | null;
   patientProfile?: PatientProfile | null;
   _count?: { appointments: number };
-  contracts: Contract[];
+  contracts?: Contract[];
 }
 
 const ROLES = ['PATIENT', 'DOCTOR', 'PHARMACY', 'HOSPITAL', 'ADMIN', 'FACILITY_MANAGER', 'ADMIN_READ', 'ADMIN_WRITE', 'GUEST'];
@@ -421,13 +421,13 @@ export default function UserDetailPage() {
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
           <h2 className="font-semibold">Contrats</h2>
-          <span className="ml-auto text-xs text-muted-foreground">{user.contracts.length} contrat(s)</span>
+          <span className="ml-auto text-xs text-muted-foreground">{(user.contracts ?? []).length} contrat(s)</span>
         </div>
-        {user.contracts.length === 0 ? (
+        {(user.contracts ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun contrat associé.</p>
         ) : (
           <div className="divide-y divide-border">
-            {user.contracts.map((c) => (
+            {(user.contracts ?? []).map((c) => (
               <div key={c.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex items-start justify-between gap-2">
                   <div>
