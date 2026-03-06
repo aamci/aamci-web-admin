@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/api';
 import { Search, ChevronLeft, ChevronRight, Building2, MapPin, Phone } from 'lucide-react';
+import Link from 'next/link';
 
 interface Facility {
   id: string;
@@ -76,7 +77,7 @@ export default function FacilitiesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {facilities.map((f) => (
-            <div key={f.id} className="rounded-2xl border border-border bg-card p-5 space-y-3 hover:shadow-md transition-shadow">
+            <Link key={f.id} href={`/facilities/${f.id}`} className="block rounded-2xl border border-border bg-card p-5 space-y-3 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-primary shrink-0" />
@@ -112,7 +113,7 @@ export default function FacilitiesPage() {
                   <p className="text-xs text-muted-foreground">Gestionnaires</p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
