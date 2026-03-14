@@ -38,7 +38,8 @@ stages:
   - apk add --no-cache openssh-client bash
   - eval $(ssh-agent -s)
   - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-  - { cat "$SSH_PRIVATE_KEY"; echo; } > /tmp/id_deploy
+  - cat "$SSH_PRIVATE_KEY" > /tmp/id_deploy
+  - echo >> /tmp/id_deploy
   - chmod 600 /tmp/id_deploy
   - ssh-add /tmp/id_deploy
   - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
