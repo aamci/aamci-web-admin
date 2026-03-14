@@ -19,6 +19,7 @@ import {
   FileText,
   BarChart2,
   MessageSquare,
+  Wallet,
 } from 'lucide-react';
 
 const navGroups = [
@@ -36,6 +37,7 @@ const navGroups = [
       { href: '/facilities', label: 'Établissements', icon: Building2 },
       { href: '/appointments', label: 'Rendez-vous', icon: Calendar },
       { href: '/transactions', label: 'Transactions', icon: CreditCard },
+      { href: '/finances', label: 'Finances', icon: Wallet },
       { href: '/contracts', label: 'Contrats', icon: FileText },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
     ],
