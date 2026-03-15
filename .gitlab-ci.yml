@@ -6,24 +6,18 @@
 #
 # Déclencheurs :
 #   • Push sur n'importe quelle branche / MR   → test
-#   • Push sur main                            → test + build (staging) + deploy staging
-#   • Tag web-admin/v*.*.*                     → test + build (prod) + deploy production (manuel)
+#   • Push sur main                            → test + deploy (build sur serveur)
 #
 # Variables CI/CD à configurer (GitLab → Settings → CI/CD → Variables, masked + protected) :
-#   SSH_PRIVATE_KEY                    — clé privée pour se connecter au serveur
-#   DEPLOY_HOST                        — IP ou hostname du serveur
-#   DEPLOY_USER                        — utilisateur SSH (ex : deploy)
-#   DEPLOY_DIR                         — /opt/apps/doctor-patient
-#   NEXT_PUBLIC_API_BASE_URL_STAGING   — URL API staging
-#   NEXT_PUBLIC_API_BASE_URL_PROD      — URL API production
-#   WEB_ADMIN_STAGING_URL              — URL publique staging
-#   WEB_ADMIN_PROD_URL                 — URL publique production
+#   SSH_PRIVATE_KEY        — clé privée (type File) pour se connecter au serveur
+#   DEPLOY_HOST            — IP du serveur
+#   DEPLOY_USER            — utilisateur SSH (ex : ubuntu)
+#   DEPLOY_DIR             — /opt/apps/doctor-patient
+#   WEB_ADMIN_PROD_URL     — URL publique (ex : http://admin.1-2-3-4.nip.io)
 
 stages:
   - test
-  - build
-  - staging
-  - production
+  - deploy
 
 .web-admin-node-base:
   image: node:20-alpine
@@ -44,18 +38,6 @@ stages:
   - ssh-add /tmp/id_deploy
   - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-# ── Validation README ─────────────────────────────────────────────────────────
-
-validate:readme:web-admin:
-  image: node:20-alpine
-  stage: test
-  rules:
-    - if: $CI_COMMIT_BRANCH
-    - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
-  script:
-    - node scripts/validate-readme.js
-  allow_failure: false
-
 # ── Test ──────────────────────────────────────────────────────────────────────
 
 test:web-admin:
@@ -63,7 +45,6 @@ test:web-admin:
   stage: test
   rules:
     - if: $CI_COMMIT_BRANCH
-    - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
   script:
     - pnpm test:run
   coverage: '/Lines\s*:\s*\d+\.?\d+%/'
@@ -72,90 +53,18 @@ test:web-admin:
       - coverage/
     expire_in: 1 week
 
-# ── Build image Docker (staging) ──────────────────────────────────────────────
+# ── Deploy (build sur serveur) ────────────────────────────────────────────────
 
-build:web-admin:staging:
-  stage: build
-  image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
-    entrypoint: [""]
+deploy:web-admin:
+  stage: deploy
+  image: alpine:3.19
   needs: ["test:web-admin"]
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  before_script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64 -w 0)\"}}}" > /kaniko/.docker/config.json
-  script:
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE/web-admin:$CI_COMMIT_SHORT_SHA"
-      --destination "$CI_REGISTRY_IMAGE/web-admin:staging"
-      --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_STAGING"
-      --cache=true
-      --cache-ttl=24h
-
-build:web-admin:production:
-  stage: build
-  image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
-    entrypoint: [""]
-  needs: ["test:web-admin"]
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
-  before_script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64 -w 0)\"}}}" > /kaniko/.docker/config.json
-  script:
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE/web-admin:$CI_COMMIT_TAG"
-      --destination "$CI_REGISTRY_IMAGE/web-admin:latest"
-      --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_PROD"
-      --cache=true
-      --cache-ttl=24h
-
-# ── Deploy staging ────────────────────────────────────────────────────────────
-
-deploy:web-admin:staging:
-  stage: staging
-  image: alpine:3.19
-  needs: ["build:web-admin:staging"]
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  environment:
-    name: web-admin/staging
-    url: $WEB_ADMIN_STAGING_URL
-  before_script:
-    - *ssh-before
-  script:
-    - |
-      ssh "$DEPLOY_USER@$DEPLOY_HOST" \
-        "REGISTRY=$CI_REGISTRY \
-         REGISTRY_USER=$CI_REGISTRY_USER \
-         REGISTRY_PASSWORD=$CI_JOB_TOKEN \
-         bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin $CI_COMMIT_SHORT_SHA"
-
-# ── Deploy production ─────────────────────────────────────────────────────────
-
-deploy:web-admin:production:
-  stage: production
-  image: alpine:3.19
-  needs: ["build:web-admin:production"]
-  when: manual
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^web-admin\/v.*/
-      when: manual
   environment:
     name: web-admin/production
     url: $WEB_ADMIN_PROD_URL
   before_script:
     - *ssh-before
   script:
-    - |
-      ssh "$DEPLOY_USER@$DEPLOY_HOST" \
-        "REGISTRY=$CI_REGISTRY \
-         REGISTRY_USER=$CI_REGISTRY_USER \
-         REGISTRY_PASSWORD=$CI_JOB_TOKEN \
-         bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin $CI_COMMIT_TAG"
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin"
