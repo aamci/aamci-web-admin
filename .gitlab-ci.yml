@@ -1,30 +1,18 @@
-# ─── CI/CD — Web Admin Next.js (@health/web-admin) ───────────────────────────
+# ─── CI/CD — Web Admin (@health/web-admin) ───────────────────────────────────
 #
-# Pipeline autonome — à configurer comme CI config path dans le projet GitLab :
-#   Settings → CI/CD → General pipelines → CI/CD configuration file
-#   → apps/web-admin/.gitlab-ci.yml
+# CI config path : apps/web-admin/.gitlab-ci.yml
 #
-# Déclencheurs :
-#   • Push sur n'importe quelle branche / MR   → test
-#   • Push sur main                            → test + deploy (build sur serveur)
-#
-# Variables CI/CD à configurer (GitLab → Settings → CI/CD → Variables, masked + protected) :
-#   SSH_PRIVATE_KEY        — clé privée (type File) pour se connecter au serveur
-#   DEPLOY_HOST            — IP du serveur
-#   DEPLOY_USER            — utilisateur SSH (ex : ubuntu)
-#   DEPLOY_DIR             — /opt/apps/doctor-patient
-#   WEB_ADMIN_PROD_URL     — URL publique (ex : http://admin.1-2-3-4.nip.io)
+# Variables groupe GitLab :
+#   SSH_PRIVATE_KEY              — clé privée (type File)
+#   DEPLOY_HOST                  — IP du serveur
+#   DEPLOY_USER                  — ex : ubuntu
+#   DEPLOY_DIR                   — /opt/apps/doctor-patient
+#   NEXT_PUBLIC_API_BASE_URL_PROD — http://api.83-228-225-92.nip.io
+#   WEB_ADMIN_PROD_URL           — http://admin.83-228-225-92.nip.io
 
 stages:
-  - test
+  - build
   - deploy
-
-.web-admin-node-base:
-  image: node:20-alpine
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@9 --activate
-    - pnpm install --no-frozen-lockfile
 
 # ── SSH helper ────────────────────────────────────────────────────────────────
 
@@ -38,27 +26,34 @@ stages:
   - ssh-add /tmp/id_deploy
   - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-# ── Test ──────────────────────────────────────────────────────────────────────
+# ── Build & push (kaniko) ─────────────────────────────────────────────────────
 
-test:web-admin:
-  extends: .web-admin-node-base
-  stage: test
+build:web-admin:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
   rules:
-    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64 -w 0)\"}}}" > /kaniko/.docker/config.json
   script:
-    - pnpm test:run
-  coverage: '/Lines\s*:\s*\d+\.?\d+%/'
-  artifacts:
-    paths:
-      - coverage/
-    expire_in: 1 week
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      --destination "$CI_REGISTRY_IMAGE:latest"
+      --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_PROD"
+      --cache=true
+      --cache-ttl=24h
 
-# ── Deploy (build sur serveur) ────────────────────────────────────────────────
+# ── Deploy ────────────────────────────────────────────────────────────────────
 
 deploy:web-admin:
   stage: deploy
   image: alpine:3.19
-  needs: ["test:web-admin"]
+  needs: ["build:web-admin"]
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   environment:
@@ -67,4 +62,5 @@ deploy:web-admin:
   before_script:
     - *ssh-before
   script:
-    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin"
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST"
+      "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin $CI_COMMIT_SHORT_SHA"
