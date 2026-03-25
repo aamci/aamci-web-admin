@@ -3,12 +3,14 @@
 # CI config path : apps/web-admin/.gitlab-ci.yml
 #
 # Variables groupe GitLab :
-#   SSH_PRIVATE_KEY              — clé privée (type File)
-#   DEPLOY_HOST                  — IP du serveur
-#   DEPLOY_USER                  — ex : ubuntu
-#   DEPLOY_DIR                   — /opt/apps/doctor-patient
-#   NEXT_PUBLIC_API_BASE_URL_PROD — http://api.83-228-225-92.nip.io
-#   WEB_ADMIN_PROD_URL           — http://admin.83-228-225-92.nip.io
+#   SSH_PRIVATE_KEY                  — clé privée (type File)
+#   DEPLOY_HOST                      — IP du serveur
+#   DEPLOY_USER                      — ex : ubuntu
+#   DEPLOY_DIR                       — /opt/apps/doctor-patient
+#   NEXT_PUBLIC_API_BASE_URL_PROD    — http://api.141.253.108.57.nip.io
+#   NEXT_PUBLIC_API_BASE_URL_PREPROD — http://preprod-api.141.253.108.57.nip.io
+#   WEB_ADMIN_PROD_URL               — http://admin.141.253.108.57.nip.io
+#   WEB_ADMIN_PREPROD_URL            — http://preprod-admin.141.253.108.57.nip.io
 
 stages:
   - build
@@ -26,7 +28,7 @@ stages:
   - ssh-add /tmp/id_deploy
   - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-# ── Build & push (kaniko) ─────────────────────────────────────────────────────
+# ── Build & push (kaniko) — prod ──────────────────────────────────────────────
 
 build:web-admin:
   stage: build
@@ -48,7 +50,29 @@ build:web-admin:
       --cache=true
       --cache-ttl=24h
 
-# ── Deploy ────────────────────────────────────────────────────────────────────
+# ── Build & push (kaniko) — preprod ──────────────────────────────────────────
+
+build:web-admin:preprod:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "preprod"
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n $CI_REGISTRY_USER:$CI_JOB_TOKEN | base64 -w 0)\"}}}" > /kaniko/.docker/config.json
+  script:
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination "$CI_REGISTRY_IMAGE:preprod-$CI_COMMIT_SHORT_SHA"
+      --destination "$CI_REGISTRY_IMAGE:preprod"
+      --build-arg "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL_PREPROD"
+      --cache=true
+      --cache-ttl=24h
+
+# ── Deploy — prod ─────────────────────────────────────────────────────────────
 
 deploy:web-admin:
   stage: deploy
@@ -63,4 +87,21 @@ deploy:web-admin:
     - *ssh-before
   script:
     - ssh "$DEPLOY_USER@$DEPLOY_HOST"
-      "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin $CI_COMMIT_SHORT_SHA"
+      "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin $CI_COMMIT_SHORT_SHA prod"
+
+# ── Deploy — preprod ──────────────────────────────────────────────────────────
+
+deploy:web-admin:preprod:
+  stage: deploy
+  image: alpine:3.19
+  needs: ["build:web-admin:preprod"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "preprod"
+  environment:
+    name: web-admin/preprod
+    url: $WEB_ADMIN_PREPROD_URL
+  before_script:
+    - *ssh-before
+  script:
+    - ssh "$DEPLOY_USER@$DEPLOY_HOST"
+      "bash $DEPLOY_DIR/infra/scripts/deploy.sh web-admin preprod-$CI_COMMIT_SHORT_SHA preprod"
