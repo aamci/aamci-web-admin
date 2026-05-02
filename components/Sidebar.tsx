@@ -20,6 +20,8 @@ import {
   BarChart2,
   MessageSquare,
   Wallet,
+  Mail,
+  KeyRound,
 } from 'lucide-react';
 
 const navGroups = [
@@ -40,6 +42,7 @@ const navGroups = [
       { href: '/finances', label: 'Finances', icon: Wallet },
       { href: '/contracts', label: 'Contrats', icon: FileText },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
+      { href: '/correspondences', label: 'Correspondances', icon: Mail },
     ],
   },
   {
@@ -54,6 +57,7 @@ const navGroups = [
       { href: '/audit', label: "Journal d'audit", icon: ClipboardList },
       { href: '/settings', label: 'Paramètres', icon: Settings },
       { href: '/encryption', label: 'Chiffrement', icon: ShieldCheck },
+      { href: '/security', label: 'Sécurité 2FA', icon: KeyRound },
     ],
   },
 ];
