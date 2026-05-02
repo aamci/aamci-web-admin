@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { Mail, Search, Eye, X, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DoctorUser {
@@ -25,7 +25,7 @@ interface Correspondence {
   createdAt: string;
   sender: DoctorUser;
   recipient: DoctorUser;
-  patient?: { id: string; fullName: string; email: string; avatarUrl?: string | null } | null;
+  patient?: { id: string; fullName: string; email: string } | null;
 }
 
 interface PaginatedResult {
@@ -36,11 +36,11 @@ interface PaginatedResult {
 }
 
 const CATEGORIES: Record<string, { label: string; className: string }> = {
-  COMPTE_RENDU: { label: 'Compte-rendu',    className: 'bg-blue-100 text-blue-700' },
-  DEMANDE_AVIS: { label: "Demande d'avis",  className: 'bg-violet-100 text-violet-700' },
-  REPONSE_AVIS: { label: 'Réponse',         className: 'bg-emerald-100 text-emerald-700' },
-  TRANSFERT:    { label: 'Transfert',        className: 'bg-amber-100 text-amber-700' },
-  AUTRE:        { label: 'Autre',            className: 'bg-gray-100 text-gray-600' },
+  COMPTE_RENDU: { label: 'Compte-rendu',    className: 'bg-blue-100 text-blue-700 border-0' },
+  DEMANDE_AVIS: { label: "Demande d'avis",  className: 'bg-violet-100 text-violet-700 border-0' },
+  REPONSE_AVIS: { label: 'Réponse',         className: 'bg-emerald-100 text-emerald-700 border-0' },
+  TRANSFERT:    { label: 'Transfert',        className: 'bg-amber-100 text-amber-700 border-0' },
+  AUTRE:        { label: 'Autre',            className: 'bg-gray-100 text-gray-600 border-0' },
 };
 
 function formatDate(iso: string) {
@@ -74,31 +74,28 @@ export default function CorrespondencesPage() {
       if (search)              params.set('search', search);
       if (category !== 'all') params.set('category', category);
       if (isRead   !== 'all') params.set('isRead', isRead);
-      const res = await apiFetch(`/admin/correspondences?${params}`);
+      const res = await apiFetch<PaginatedResult>(`/admin/correspondences?${params}`);
       setData(res);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(1); setPage(1); }, [search, category, isRead]);
+  useEffect(() => { setPage(1); load(1); }, [search, category, isRead]);
   useEffect(() => { load(page); }, [page]);
 
   const loadDetail = async (id: string) => {
-    const res = await apiFetch(`/admin/correspondences/${id}`);
+    const res = await apiFetch<Correspondence>(`/admin/correspondences/${id}`);
     setSelected(res);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Correspondances médicales</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {data ? `${data.total} correspondance${data.total > 1 ? 's' : ''}` : '—'}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Correspondances médicales</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {data ? `${data.total} correspondance${data.total > 1 ? 's' : ''}` : '—'}
+        </p>
       </div>
 
       {/* Filters */}
@@ -166,18 +163,16 @@ export default function CorrespondencesPage() {
                   </p>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CATEGORIES[c.category]?.className ?? 'bg-gray-100 text-gray-600'}`}>
+                  <Badge className={CATEGORIES[c.category]?.className ?? 'bg-gray-100 text-gray-600 border-0'}>
                     {CATEGORIES[c.category]?.label ?? c.category}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">
-                  {c.patient ? c.patient.fullName : <span className="text-muted-foreground/40">—</span>}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(c.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <Badge variant={c.isRead ? 'secondary' : 'default'} className="text-xs">
-                    {c.isRead ? 'Lu' : 'Non lu'}
                   </Badge>
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {c.patient ? c.patient.fullName : <span className="opacity-40">—</span>}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(c.createdAt)}</td>
+                <td className="px-4 py-3">
+                  <Badge variant={c.isRead ? 'secondary' : 'default'}>{c.isRead ? 'Lu' : 'Non lu'}</Badge>
                 </td>
                 <td className="px-4 py-3">
                   <Button size="sm" variant="ghost" onClick={() => loadDetail(c.id)}>
@@ -214,29 +209,24 @@ export default function CorrespondencesPage() {
                 <Mail className="h-5 w-5 text-primary" />
                 <h2 className="font-semibold text-lg">{selected.subject}</h2>
               </div>
-              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+              <Button variant="ghost" size="icon" onClick={() => setSelected(null)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="p-5 space-y-5">
-              {/* Meta */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/40 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground mb-1">Expéditeur</p>
                   <p className="font-medium">{selected.sender.fullName}</p>
                   <p className="text-xs text-muted-foreground">{selected.sender.doctorProfile?.specialty}</p>
-                  {selected.sender.doctorProfile?.city && (
-                    <p className="text-xs text-muted-foreground">{selected.sender.doctorProfile.city}</p>
-                  )}
+                  {selected.sender.doctorProfile?.city && <p className="text-xs text-muted-foreground">{selected.sender.doctorProfile.city}</p>}
                 </div>
                 <div className="bg-muted/40 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground mb-1">Destinataire</p>
                   <p className="font-medium">{selected.recipient.fullName}</p>
                   <p className="text-xs text-muted-foreground">{selected.recipient.doctorProfile?.specialty}</p>
-                  {selected.recipient.doctorProfile?.city && (
-                    <p className="text-xs text-muted-foreground">{selected.recipient.doctorProfile.city}</p>
-                  )}
+                  {selected.recipient.doctorProfile?.city && <p className="text-xs text-muted-foreground">{selected.recipient.doctorProfile.city}</p>}
                 </div>
               </div>
 
@@ -252,16 +242,15 @@ export default function CorrespondencesPage() {
               )}
 
               <div className="flex items-center gap-3">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${CATEGORIES[selected.category]?.className}`}>
+                <Badge className={CATEGORIES[selected.category]?.className}>
                   {CATEGORIES[selected.category]?.label}
-                </span>
+                </Badge>
                 <Badge variant={selected.isRead ? 'secondary' : 'default'}>
                   {selected.isRead ? `Lu le ${formatDate(selected.readAt!)}` : 'Non lu'}
                 </Badge>
                 <span className="text-xs text-muted-foreground ml-auto">{formatDate(selected.createdAt)}</span>
               </div>
 
-              {/* Content */}
               <div className="bg-muted/30 rounded-xl p-4">
                 <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Contenu</p>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{selected.content}</p>

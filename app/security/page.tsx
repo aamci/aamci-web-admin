@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/api';
-import { KeyRound, Search, ShieldCheck, ShieldOff, ShieldAlert, Unlock, Ban, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { KeyRound, Search, ShieldCheck, ShieldAlert, Unlock, Ban, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface TwoFactorAuth {
@@ -21,7 +21,6 @@ interface UserWith2FA {
   fullName: string;
   email: string;
   role: string;
-  avatarUrl?: string | null;
   twoFactorAuth?: TwoFactorAuth | null;
 }
 
@@ -50,9 +49,9 @@ function isLocked(tfa?: TwoFactorAuth | null) {
 }
 
 function StatusBadge({ tfa }: { tfa?: TwoFactorAuth | null }) {
-  if (!tfa) return <Badge variant="secondary">Non configuré</Badge>;
-  if (isLocked(tfa)) return <Badge className="bg-red-100 text-red-700">Verrouillé</Badge>;
-  if (tfa.isEnabled) return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
+  if (!tfa)           return <Badge variant="secondary">Non configuré</Badge>;
+  if (isLocked(tfa))  return <Badge className="bg-red-100 text-red-700 border-0">Verrouillé</Badge>;
+  if (tfa.isEnabled)  return <Badge className="bg-emerald-100 text-emerald-700 border-0">Actif</Badge>;
   return <Badge variant="secondary">Désactivé</Badge>;
 }
 
@@ -70,7 +69,7 @@ export default function SecurityPage() {
     setStats(res);
   }, []);
 
-  const loadUsers = useCallback(async (p = page) => {
+  const loadUsers = useCallback(async (p: number) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(p), limit: '20' });
@@ -81,9 +80,9 @@ export default function SecurityPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, status, page]);
+  }, [search, status]);
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => { setPage(1); loadUsers(1); }, [search, status]);
   useEffect(() => { loadUsers(page); }, [page]);
 
@@ -110,10 +109,9 @@ export default function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Sécurité — Gestion 2FA</h1>
-        <p className="text-muted-foreground text-sm mt-1">Gérez l'authentification à deux facteurs des utilisateurs</p>
+        <p className="text-sm text-muted-foreground mt-1">Gérez l'authentification à deux facteurs des utilisateurs</p>
       </div>
 
       {/* Stats */}
@@ -150,7 +148,7 @@ export default function SecurityPage() {
             </div>
             <p className="text-2xl font-bold text-blue-600">{stats.adoptionRate}%</p>
             <div className="mt-1.5 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${stats.adoptionRate}%` }} />
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.adoptionRate}%` }} />
             </div>
           </div>
         </div>
@@ -206,42 +204,35 @@ export default function SecurityPage() {
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                 </td>
                 <td className="px-4 py-3">
-                  <Badge variant="outline" className="text-xs">{u.role}</Badge>
+                  <Badge variant="outline">{u.role}</Badge>
                 </td>
                 <td className="px-4 py-3"><StatusBadge tfa={u.twoFactorAuth} /></td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(u.twoFactorAuth?.lastUsedAt)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(u.twoFactorAuth?.lastUsedAt)}</td>
                 <td className="px-4 py-3">
-                  {(u.twoFactorAuth?.failedAttempts ?? 0) > 0 ? (
-                    <span className="text-red-600 font-medium">{u.twoFactorAuth?.failedAttempts}</span>
-                  ) : (
-                    <span className="text-muted-foreground">0</span>
-                  )}
+                  {(u.twoFactorAuth?.failedAttempts ?? 0) > 0
+                    ? <span className="text-red-600 font-medium">{u.twoFactorAuth?.failedAttempts}</span>
+                    : <span className="text-muted-foreground">0</span>}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {isLocked(u.twoFactorAuth) ? (
-                    <span className="text-red-600 font-medium">{formatDate(u.twoFactorAuth?.lockedUntil)}</span>
-                  ) : '—'}
+                <td className="px-4 py-3 text-xs">
+                  {isLocked(u.twoFactorAuth)
+                    ? <span className="text-red-600 font-medium">{formatDate(u.twoFactorAuth?.lockedUntil)}</span>
+                    : <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5 justify-end">
                     {isLocked(u.twoFactorAuth) && (
-                      <Button
-                        size="sm" variant="outline"
-                        className="text-xs gap-1.5"
-                        disabled={actionId === u.id}
-                        onClick={() => handleUnlock(u.id)}
-                      >
-                        <Unlock className="h-3 w-3" /> Déverrouiller
+                      <Button size="sm" variant="outline" disabled={actionId === u.id} onClick={() => handleUnlock(u.id)}>
+                        <Unlock className="h-3 w-3 mr-1" /> Déverrouiller
                       </Button>
                     )}
                     {u.twoFactorAuth?.isEnabled && (
                       <Button
                         size="sm" variant="outline"
-                        className="text-xs gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                         disabled={actionId === u.id}
                         onClick={() => handleDisable(u.id)}
                       >
-                        <Ban className="h-3 w-3" /> Désactiver
+                        <Ban className="h-3 w-3 mr-1" /> Désactiver
                       </Button>
                     )}
                   </div>
