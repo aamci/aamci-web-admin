@@ -5,9 +5,13 @@ import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, Globe, Users, UserCog,
-  Star, FileText, CheckCircle2, Clock, XCircle, AlertCircle,
+  Star, FileText, CheckCircle2, Clock, XCircle, AlertCircle, Pencil, X, Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/app/_providers/AuthProvider';
+
+const WRITE_ROLES = ['ADMIN', 'ADMIN_WRITE'];
+const FACILITY_TYPES = ['CHU', 'CLINIC', 'POLYCLINIC', 'CENTER'] as const;
 
 interface DoctorEntry {
   userId: string;
@@ -92,16 +96,45 @@ const contractStatusLabel: Record<string, string> = {
 
 export default function FacilityDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user: me } = useAuth();
+  const canWrite = WRITE_ROLES.includes(me?.role ?? '');
+
   const [facility, setFacility] = useState<FacilityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<FacilityDetail>>({});
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
   useEffect(() => {
     apiFetch<FacilityDetail>(`/admin/facilities/${id}`)
-      .then(setFacility)
+      .then((f) => { setFacility(f); setEditForm(f); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true); setEditError('');
+    try {
+      const updated = await apiFetch<FacilityDetail>(`/admin/facilities/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editForm.name, type: editForm.type, city: editForm.city,
+          address: editForm.address, phone: editForm.phone, email: editForm.email,
+          website: editForm.website, description: editForm.description,
+        }),
+      });
+      setFacility(updated);
+      setShowEdit(false);
+    } catch (err) {
+      setEditError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -142,7 +175,81 @@ export default function FacilityDetailPage() {
             Créé le {new Date(facility.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
+        {canWrite && (
+          <button onClick={() => { setEditForm(facility); setEditError(''); setShowEdit(true); }}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-muted/60">
+            <Pencil className="h-4 w-4" /> Modifier
+          </button>
+        )}
       </div>
+
+      {/* Modal édition */}
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-xl">
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <h2 className="font-semibold text-lg">Modifier l'établissement</h2>
+              <button onClick={() => setShowEdit(false)} className="rounded-lg p-1 hover:bg-muted/60"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleSave} className="p-5 space-y-4">
+              {editError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{editError}</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Nom *</label>
+                  <input className="input w-full" value={editForm.name ?? ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select className="input w-full" value={editForm.type ?? ''} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}>
+                    {FACILITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ville</label>
+                  <input className="input w-full" value={editForm.city ?? ''} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Adresse</label>
+                  <input className="input w-full" value={editForm.address ?? ''} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Téléphone</label>
+                  <input className="input w-full" value={editForm.phone ?? ''} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input className="input w-full" type="email" value={editForm.email ?? ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Site web</label>
+                  <input className="input w-full" value={editForm.website ?? ''} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea className="input w-full min-h-[80px] resize-none" value={editForm.description ?? ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+                </div>
+              </div>
+              <div className="flex justify-between gap-3 pt-1">
+                <button type="button" onClick={async () => {
+                  if (!confirm('Supprimer cet établissement ? Cette action est irréversible.')) return;
+                  try {
+                    await apiFetch(`/admin/facilities/${id}`, { method: 'DELETE' });
+                    window.location.href = '/facilities';
+                  } catch (err) { alert('Erreur : ' + (err as Error).message); }
+                }} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" /> Supprimer
+                </button>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setShowEdit(false)} className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted/60">Annuler</button>
+                  <button type="submit" disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                    {saving ? 'Enregistrement…' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 

@@ -102,7 +102,7 @@ export default function DoctorsPage() {
                 <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                   <td className="px-4 py-3">
                     <div>
-                      <Link href={`/users/${d.id}`} className="font-medium hover:text-primary hover:underline">
+                      <Link href={`/doctors/${d.id}`} className="font-medium hover:text-primary hover:underline">
                         {d.fullName ?? '—'}
                       </Link>
                       <p className="text-xs text-muted-foreground">{d.email}</p>
@@ -146,8 +146,8 @@ export default function DoctorsPage() {
                           </button>
                         )
                       )}
-                      <Link href={`/users/${d.id}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10">
-                        Profil
+                      <Link href={`/doctors/${d.id}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10">
+                        Détail
                       </Link>
                     </div>
                   </td>

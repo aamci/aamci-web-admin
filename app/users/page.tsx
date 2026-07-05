@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import { Search, UserCheck, UserX, ChevronLeft, ChevronRight, UserPlus, X } from 'lucide-react';
+import { Search, UserCheck, UserX, ChevronLeft, ChevronRight, UserPlus, X, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/app/_providers/AuthProvider';
 
 interface User {
@@ -38,6 +38,10 @@ export default function UsersPage() {
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Delete user modal state
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Create user modal state
   const [showCreate, setShowCreate] = useState(false);
@@ -78,6 +82,20 @@ export default function UsersPage() {
       fetchUsers();
     } catch (err) {
       alert('Erreur : ' + (err as Error).message);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await apiFetch(`/admin/users/${deleteTarget.id}`, { method: 'DELETE' });
+      setDeleteTarget(null);
+      fetchUsers();
+    } catch (err) {
+      alert('Erreur : ' + (err as Error).message);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -248,6 +266,15 @@ export default function UsersPage() {
                           </button>
                         )
                       )}
+                      {me?.role === 'ADMIN' && (
+                        <button
+                          onClick={() => setDeleteTarget(u)}
+                          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <Link
                         href={`/users/${u.id}`}
                         className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
@@ -286,6 +313,47 @@ export default function UsersPage() {
               Suivant
               <ChevronRight className="h-4 w-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold">Supprimer l&apos;utilisateur</h2>
+                <p className="text-sm text-muted-foreground">Cette action est irréversible</p>
+              </div>
+            </div>
+            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
+              <p className="font-medium">{deleteTarget.fullName ?? '—'}</p>
+              <p className="text-muted-foreground">{deleteTarget.email}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Les données personnelles seront anonymisées (nom, email, téléphone). Les données médicales
+              sont conservées à des fins légales.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted/60"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteLoading ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </div>
           </div>
         </div>
       )}
