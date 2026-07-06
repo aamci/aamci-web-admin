@@ -30,7 +30,7 @@ interface DoctorDetail {
     totalReviews: number;
     autoConfirmPatientBookings: boolean;
     facilities: Array<{ id: string; name: string; type: string; city: string | null }>;
-    reviews: Array<{ id: string; rating: number; comment: string | null; createdAt: string }>;
+    reviews: Array<{ id: string; overallRating: number; comment: string | null; createdAt: string }>;
   } | null;
   _count: { appointments: number };
 }
@@ -200,7 +200,7 @@ export default function DoctorDetailPage() {
               <div key={r.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-2 mb-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                    <Star key={i} className={`h-3.5 w-3.5 ${i < r.overallRating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
                   ))}
                   <span className="text-xs text-muted-foreground ml-1">{new Date(r.createdAt).toLocaleDateString('fr-FR')}</span>
                 </div>
