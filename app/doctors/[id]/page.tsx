@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/app/_providers/AuthProvider';
 import {
   ArrowLeft, Star, UserCheck, UserX, MapPin, Phone, Mail,
-  Building2, Calendar, Stethoscope, MessageSquare,
+  Building2, Calendar, Stethoscope, MessageSquare, Plus, X, Search,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -45,12 +45,54 @@ export default function DoctorDetailPage() {
   const [error, setError] = useState('');
   const [toggling, setToggling] = useState(false);
 
+  // Facility management
+  const [facilitySearch, setFacilitySearch] = useState('');
+  const [facilityResults, setFacilityResults] = useState<Array<{ id: string; name: string; type: string; city: string | null }>>([]);
+  const [searchingFacility, setSearchingFacility] = useState(false);
+  const [facilityActionLoading, setFacilityActionLoading] = useState<string | null>(null);
+
   useEffect(() => {
     apiFetch<DoctorDetail>(`/admin/doctors/${id}`)
       .then(setDoctor)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const searchFacilities = async (q: string) => {
+    if (!q.trim()) { setFacilityResults([]); return; }
+    setSearchingFacility(true);
+    try {
+      const res = await apiFetch<{ facilities: Array<{ id: string; name: string; type: string; city: string | null }> }>(
+        `/admin/facilities?search=${encodeURIComponent(q)}&limit=10`
+      );
+      const existingIds = new Set(doctor?.doctorProfile?.facilities.map(f => f.id) ?? []);
+      setFacilityResults(res.facilities.filter(f => !existingIds.has(f.id)));
+    } catch { /* ignore */ } finally { setSearchingFacility(false); }
+  };
+
+  const addFacility = async (facilityId: string) => {
+    if (!doctor) return;
+    setFacilityActionLoading(facilityId);
+    try {
+      const updated = await apiFetch<{ facilities: Array<{ id: string; name: string; type: string; city: string | null }> }>(
+        `/admin/doctors/${doctor.id}/facilities/${facilityId}`, { method: 'POST' }
+      );
+      setDoctor(d => d ? { ...d, doctorProfile: d.doctorProfile ? { ...d.doctorProfile, facilities: updated.facilities } : d.doctorProfile } : d);
+      setFacilityResults(r => r.filter(f => f.id !== facilityId));
+      setFacilitySearch('');
+    } catch { /* ignore */ } finally { setFacilityActionLoading(null); }
+  };
+
+  const removeFacility = async (facilityId: string) => {
+    if (!doctor) return;
+    setFacilityActionLoading(facilityId);
+    try {
+      const updated = await apiFetch<{ facilities: Array<{ id: string; name: string; type: string; city: string | null }> }>(
+        `/admin/doctors/${doctor.id}/facilities/${facilityId}`, { method: 'DELETE' }
+      );
+      setDoctor(d => d ? { ...d, doctorProfile: d.doctorProfile ? { ...d.doctorProfile, facilities: updated.facilities } : d.doctorProfile } : d);
+    } catch { /* ignore */ } finally { setFacilityActionLoading(null); }
+  };
 
   const handleToggle = async () => {
     if (!doctor) return;
@@ -172,7 +214,11 @@ export default function DoctorDetailPage() {
 
       {/* Établissements */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-3">
-        <h2 className="font-semibold flex items-center gap-2"><Building2 className="h-4 w-4 text-violet-500" /> Établissements ({profile?.facilities.length ?? 0})</h2>
+        <h2 className="font-semibold flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-violet-500" /> Établissements ({profile?.facilities.length ?? 0})
+        </h2>
+
+        {/* Liste actuelle */}
         {!profile?.facilities.length ? (
           <p className="text-sm text-muted-foreground">Aucun établissement rattaché.</p>
         ) : (
@@ -185,8 +231,54 @@ export default function DoctorDetailPage() {
                   </Link>
                   <p className="text-xs text-muted-foreground mt-0.5">{f.type}{f.city ? ` · ${f.city}` : ''}</p>
                 </div>
+                {canWrite && (
+                  <button
+                    onClick={() => removeFacility(f.id)}
+                    disabled={facilityActionLoading === f.id}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                    title="Retirer de cet établissement"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Recherche et ajout */}
+        {canWrite && (
+          <div className="pt-2 border-t border-border space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={facilitySearch}
+                onChange={(e) => { setFacilitySearch(e.target.value); searchFacilities(e.target.value); }}
+                placeholder="Rechercher un établissement..."
+                className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            {searchingFacility && <p className="text-xs text-muted-foreground">Recherche...</p>}
+            {facilityResults.length > 0 && (
+              <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
+                {facilityResults.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between px-3 py-2 bg-background hover:bg-muted/40 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium">{f.name}</p>
+                      <p className="text-xs text-muted-foreground">{f.type}{f.city ? ` · ${f.city}` : ''}</p>
+                    </div>
+                    <button
+                      onClick={() => addFacility(f.id)}
+                      disabled={facilityActionLoading === f.id}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    >
+                      <Plus className="h-3 w-3" /> Associer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
