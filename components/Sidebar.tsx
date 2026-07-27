@@ -23,6 +23,7 @@ import {
   Mail,
   KeyRound,
 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 const navGroups = [
   {
@@ -70,11 +71,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-60 flex-col border-r border-border bg-card overflow-y-auto">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border shrink-0">
-        <img
-          src="/logo.jpeg"
-          alt="Ibogha 241"
-          className="h-10 w-auto rounded-lg object-contain"
-        />
+        <Logo className="h-10 w-auto" />
         <span className="font-semibold text-sm tracking-tight text-muted-foreground">Admin</span>
       </div>
 

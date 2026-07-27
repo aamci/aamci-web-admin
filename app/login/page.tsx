@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/_providers/AuthProvider';
-import { Activity } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -78,11 +78,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <img
-            src="/logo.jpeg"
-            alt="Ibogha 241"
-            className="h-20 w-auto rounded-2xl object-contain shadow-md"
-          />
+          <Logo className="h-20 w-auto" />
           <p className="text-sm text-muted-foreground">Connexion administrateur</p>
         </div>
 
