@@ -77,11 +77,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <Activity className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold">Admin</h1>
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <img
+            src="/logo.jpeg"
+            alt="Ibogha 241"
+            className="h-20 w-auto rounded-2xl object-contain shadow-md"
+          />
           <p className="text-sm text-muted-foreground">Connexion administrateur</p>
         </div>
 
