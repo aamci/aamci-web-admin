@@ -70,8 +70,11 @@ export default function DoctorDetailPage() {
     } catch { /* ignore */ } finally { setSearchingFacility(false); }
   };
 
+  const [facilityError, setFacilityError] = useState('');
+
   const addFacility = async (facilityId: string) => {
     if (!doctor) return;
+    setFacilityError('');
     setFacilityActionLoading(facilityId);
     try {
       const updated = await apiFetch<{ facilities: Array<{ id: string; name: string; type: string; city: string | null }> }>(
@@ -80,18 +83,23 @@ export default function DoctorDetailPage() {
       setDoctor(d => d ? { ...d, doctorProfile: d.doctorProfile ? { ...d.doctorProfile, facilities: updated.facilities } : d.doctorProfile } : d);
       setFacilityResults(r => r.filter(f => f.id !== facilityId));
       setFacilitySearch('');
-    } catch { /* ignore */ } finally { setFacilityActionLoading(null); }
+    } catch (e) {
+      setFacilityError((e as Error).message || 'Erreur lors de l\'association');
+    } finally { setFacilityActionLoading(null); }
   };
 
   const removeFacility = async (facilityId: string) => {
     if (!doctor) return;
+    setFacilityError('');
     setFacilityActionLoading(facilityId);
     try {
       const updated = await apiFetch<{ facilities: Array<{ id: string; name: string; type: string; city: string | null }> }>(
         `/admin/doctors/${doctor.id}/facilities/${facilityId}`, { method: 'DELETE' }
       );
       setDoctor(d => d ? { ...d, doctorProfile: d.doctorProfile ? { ...d.doctorProfile, facilities: updated.facilities } : d.doctorProfile } : d);
-    } catch { /* ignore */ } finally { setFacilityActionLoading(null); }
+    } catch (e) {
+      setFacilityError((e as Error).message || 'Erreur lors de la dissociation');
+    } finally { setFacilityActionLoading(null); }
   };
 
   const handleToggle = async () => {
@@ -260,6 +268,9 @@ export default function DoctorDetailPage() {
               />
             </div>
             {searchingFacility && <p className="text-xs text-muted-foreground">Recherche...</p>}
+            {facilityError && (
+              <p className="text-xs text-destructive bg-destructive/10 px-2 py-1.5 rounded">{facilityError}</p>
+            )}
             {facilityResults.length > 0 && (
               <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
                 {facilityResults.map((f) => (
