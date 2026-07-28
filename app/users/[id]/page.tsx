@@ -256,7 +256,7 @@ export default function UserDetailPage() {
             .finally(() => setWalletLoading(false));
         }
         // Load facility manager profile + facility list
-        if (u.role === 'FACILITY_MANAGER') {
+        if (['FACILITY_MANAGER', 'SECRETARY'].includes(u.role)) {
           setFmLoading(true);
           Promise.all([
             apiFetch<FacilityManagerProfile | null>(`/admin/facility-managers/${u.id}`).catch(() => null),
@@ -675,8 +675,8 @@ export default function UserDetailPage() {
         </div>
       )}
 
-      {/* Établissement & médecins gérés (FACILITY_MANAGER only) */}
-      {user.role === 'FACILITY_MANAGER' && (
+      {/* Établissement & médecins gérés (FACILITY_MANAGER / SECRETARY) */}
+      {['FACILITY_MANAGER', 'SECRETARY'].includes(user.role) && (
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <Hospital className="h-5 w-5 text-indigo-500" />
