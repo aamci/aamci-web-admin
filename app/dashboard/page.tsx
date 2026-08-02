@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import { Users, Stethoscope, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Users, Stethoscope, Calendar, CheckCircle, Clock, XCircle, AlertTriangle, ShieldAlert, Ticket, CreditCard } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -21,6 +22,13 @@ interface AdminStats {
   appointments: { total: number; pending: number; completed: number; cancelled: number };
 }
 
+interface Alerts {
+  urgentTickets: number;
+  lockedAccounts: number;
+  pendingDoctors: number;
+  failedTransactions: number;
+}
+
 interface DailyPoint {
   date: string;
   appointments: number;
@@ -37,6 +45,7 @@ function formatDate(iso: string) {
 export default function DashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [daily, setDaily] = useState<DailyPoint[]>([]);
+  const [alerts, setAlerts] = useState<Alerts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,10 +53,12 @@ export default function DashboardPage() {
     Promise.all([
       apiFetch<AdminStats>('/admin/stats/overview'),
       apiFetch<DailyPoint[]>('/admin/stats/daily?days=30'),
+      apiFetch<Alerts>('/admin/alerts').catch(() => null),
     ])
-      .then(([overview, dailyData]) => {
+      .then(([overview, dailyData, alertsData]) => {
         setStats(overview);
         setDaily(dailyData.map((d) => ({ ...d, date: formatDate(d.date) })));
+        if (alertsData) setAlerts(alertsData);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -81,12 +92,44 @@ export default function DashboardPage() {
   // Only show every ~5th label to avoid crowding
   const tickInterval = Math.floor(daily.length / 6);
 
+  const alertItems = alerts ? [
+    { key: 'urgentTickets',      count: alerts.urgentTickets,      label: 'ticket(s) urgent(s)',            href: '/tickets',      icon: Ticket,       color: 'text-red-600',    bg: 'bg-red-50 border-red-200' },
+    { key: 'pendingDoctors',     count: alerts.pendingDoctors,     label: 'médecin(s) à vérifier',          href: '/doctors',      icon: ShieldAlert,  color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200' },
+    { key: 'failedTransactions', count: alerts.failedTransactions, label: 'transaction(s) échouée(s) (24h)', href: '/transactions', icon: CreditCard,   color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
+    { key: 'lockedAccounts',     count: alerts.lockedAccounts,     label: 'compte(s) 2FA verrouillé(s)',    href: '/security',     icon: ShieldAlert,  color: 'text-slate-700',  bg: 'bg-slate-50 border-slate-200' },
+  ].filter(a => a.count > 0) : [];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de bord</h1>
         <p className="text-sm text-muted-foreground">Vue globale de la plateforme — 30 derniers jours</p>
       </div>
+
+      {/* Alerts banner */}
+      {alertItems.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <p className="text-sm font-semibold text-amber-800">{alertItems.length} point(s) nécessitant une attention</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {alertItems.map(({ key, count, label, href, icon: Icon, color, bg }) => (
+              <Link
+                key={key}
+                href={href}
+                className={`flex items-center gap-3 rounded-xl border p-3 ${bg} hover:opacity-90 transition-opacity`}
+              >
+                <Icon className={`h-5 w-5 shrink-0 ${color}`} />
+                <div>
+                  <p className={`text-lg font-bold ${color}`}>{count}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

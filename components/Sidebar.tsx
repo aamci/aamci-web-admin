@@ -22,6 +22,7 @@ import {
   Wallet,
   Mail,
   KeyRound,
+  Star,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
@@ -42,6 +43,7 @@ const navGroups = [
       { href: '/transactions', label: 'Transactions', icon: CreditCard },
       { href: '/finances', label: 'Finances', icon: Wallet },
       { href: '/contracts', label: 'Contrats', icon: FileText },
+      { href: '/reviews', label: 'Avis médecins', icon: Star },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
       { href: '/correspondences', label: 'Correspondances', icon: Mail },
     ],
