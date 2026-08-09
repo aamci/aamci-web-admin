@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
-import { Save } from 'lucide-react';
+import { Save, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/app/_providers/AuthProvider';
 
 const WRITE_ROLES = ['ADMIN', 'ADMIN_WRITE'];
@@ -24,6 +24,8 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [purging, setPurging] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<Setting[]>('/admin/settings')
@@ -47,6 +49,20 @@ export default function SettingsPage() {
       alert('Erreur : ' + (e as Error).message);
     } finally {
       setSaving((p) => ({ ...p, [key]: false }));
+    }
+  };
+
+  const handlePurge = async () => {
+    if (!confirm('Lancer la purge des données > 12 mois ? Cette action est irréversible.')) return;
+    setPurging(true);
+    setPurgeResult(null);
+    try {
+      await apiFetch('/admin/maintenance/purge', { method: 'POST' });
+      setPurgeResult('Purge exécutée avec succès.');
+    } catch (e) {
+      setPurgeResult('Erreur : ' + (e as Error).message);
+    } finally {
+      setPurging(false);
     }
   };
 
@@ -117,6 +133,44 @@ export default function SettingsPage() {
           Lecture seule — droits ADMIN_WRITE requis pour modifier les paramètres.
         </p>
       )}
+
+      {/* Maintenance */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Maintenance</h2>
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Purge des données anciennes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Supprime définitivement les notifications lues, logs d'audit et historiques de rendez-vous
+                de plus de 12 mois. Les données médicales ne sont jamais supprimées.
+              </p>
+            </div>
+          </div>
+
+          {purgeResult && (
+            <p className={`text-sm rounded-lg px-3 py-2 ${
+              purgeResult.startsWith('Erreur')
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-emerald-50 text-emerald-700'
+            }`}>
+              {purgeResult}
+            </p>
+          )}
+
+          {canWrite && (
+            <button
+              onClick={handlePurge}
+              disabled={purging}
+              className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              {purging ? 'Purge en cours…' : 'Lancer la purge maintenant'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

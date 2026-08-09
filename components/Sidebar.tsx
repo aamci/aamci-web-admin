@@ -23,6 +23,8 @@ import {
   Mail,
   KeyRound,
   Star,
+  Clock,
+  FileQuestion,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
@@ -44,6 +46,8 @@ const navGroups = [
       { href: '/finances', label: 'Finances', icon: Wallet },
       { href: '/contracts', label: 'Contrats', icon: FileText },
       { href: '/reviews', label: 'Avis médecins', icon: Star },
+      { href: '/waitlist', label: 'Liste d\'attente', icon: Clock },
+      { href: '/questionnaires', label: 'Questionnaires', icon: FileQuestion },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
       { href: '/correspondences', label: 'Correspondances', icon: Mail },
     ],
