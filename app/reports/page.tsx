@@ -66,7 +66,7 @@ export default function ReportsPage() {
     try {
       const q = new URLSearchParams({ page: String(p), limit: String(LIMIT) });
       if (s) q.set('status', s);
-      const data = await apiFetch(`/admin/reports?${q}`);
+      const data = await apiFetch<{ reports: Report[]; total: number; pages: number }>(`/admin/reports?${q}`);
       setReports(data.reports || []);
       setTotal(data.total  || 0);
       setPages(data.pages  || 1);
