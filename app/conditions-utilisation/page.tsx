@@ -53,7 +53,7 @@ Avant toute action susceptible d'affecter des données utilisateurs, vérifiez v
           {
             title: '6. Incidents de sécurité',
             content: `En cas de compromission de votre compte ou de détection d'un accès non autorisé :
-1. Contactez immédiatement security@ibogha.ga
+1. Contactez immédiatement security@ibogha241.ga
 2. Ne tentez pas de résoudre l'incident seul
 3. Conservez les preuves (logs, captures d'écran)
 
@@ -70,8 +70,8 @@ L'accès non autorisé à des données informatiques est puni par la législatio
           },
           {
             title: '8. Contact',
-            content: `Responsable sécurité : security@ibogha.ga
-DPO (Délégué à la Protection des Données) : dpo@ibogha.ga
+            content: `Responsable sécurité : security@ibogha241.ga
+DPO (Délégué à la Protection des Données) : dpo@ibogha241.ga
 Urgences : +241 XX XX XX XX`,
           },
         ].map((section) => (

@@ -25,6 +25,9 @@ import {
   Star,
   Clock,
   FileQuestion,
+  Flag,
+  History,
+  Terminal,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
@@ -49,6 +52,7 @@ const navGroups = [
       { href: '/waitlist', label: 'Liste d\'attente', icon: Clock },
       { href: '/questionnaires', label: 'Questionnaires', icon: FileQuestion },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
+      { href: '/reports', label: 'Signalements', icon: Flag },
       { href: '/correspondences', label: 'Correspondances', icon: Mail },
     ],
   },
@@ -62,6 +66,8 @@ const navGroups = [
     label: 'Système',
     items: [
       { href: '/audit', label: "Journal d'audit", icon: ClipboardList },
+      { href: '/connexions', label: 'Historique connexions', icon: History },
+      { href: '/scripts', label: 'Scripts maintenance', icon: Terminal },
       { href: '/settings', label: 'Paramètres', icon: Settings },
       { href: '/encryption', label: 'Chiffrement', icon: ShieldCheck },
       { href: '/security', label: 'Sécurité 2FA', icon: KeyRound },
