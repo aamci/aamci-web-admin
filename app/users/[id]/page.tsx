@@ -212,6 +212,11 @@ export default function UserDetailPage() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [setPasswordError, setSetPasswordError] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('');
 
@@ -298,6 +303,25 @@ export default function UserDetailPage() {
       setUser((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev);
       notify(`Utilisateur ${action === 'suspend' ? 'suspendu' : 'activé'}.`);
     } catch (err) { notify((err as Error).message, true); }
+  };
+
+  const ADMIN_ROLES = ['ADMIN', 'ADMIN_READ', 'ADMIN_WRITE', 'GUEST'];
+
+  const handleSetPassword = async () => {
+    setSetPasswordError('');
+    if (newPassword.length < 8) { setSetPasswordError('Au moins 8 caractères requis.'); return; }
+    if (newPassword !== confirmPassword) { setSetPasswordError('Les mots de passe ne correspondent pas.'); return; }
+    setSettingPassword(true);
+    try {
+      await apiFetch(`/admin/users/${id}/set-password`, { method: 'POST', body: JSON.stringify({ password: newPassword }) });
+      setSuccess('Mot de passe mis à jour avec succès.');
+      setShowSetPassword(false);
+      setNewPassword(''); setConfirmPassword('');
+    } catch (e: any) {
+      setSetPasswordError(e?.message ?? 'Erreur lors de la mise à jour.');
+    } finally {
+      setSettingPassword(false);
+    }
   };
 
   const handleResetPassword = async () => {
@@ -1168,8 +1192,77 @@ export default function UserDetailPage() {
               <KeyRound className="h-4 w-4" />
               {resetting ? 'Envoi…' : 'Réinitialiser le mot de passe'}
             </button>
+
+            {ADMIN_ROLES.includes(user.role) && me?.role === 'ADMIN' && (
+              <button
+                onClick={() => { setShowSetPassword(true); setSetPasswordError(''); setNewPassword(''); setConfirmPassword(''); }}
+                className="inline-flex items-center gap-2 rounded-lg bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100"
+              >
+                <Shield className="h-4 w-4" />
+                Définir un mot de passe
+              </button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">La réinitialisation envoie un mot de passe temporaire valable 30 minutes par email.</p>
+
+          {/* Modal définir mot de passe admin */}
+          {showSetPassword && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Définir un mot de passe</h2>
+                  <button onClick={() => setShowSetPassword(false)} className="rounded p-1 hover:bg-gray-100">
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Définissez manuellement le mot de passe de <strong>{user.fullName ?? user.email}</strong>.
+                  Aucun email ne sera envoyé.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Min. 8 caractères"
+                      className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Confirmer le mot de passe</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Répéter le mot de passe"
+                      className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                    />
+                  </div>
+                  {setPasswordError && (
+                    <p className="text-sm text-red-600">{setPasswordError}</p>
+                  )}
+                </div>
+                <div className="mt-5 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowSetPassword(false)}
+                    className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleSetPassword}
+                    disabled={settingPassword}
+                    className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {settingPassword ? 'Enregistrement…' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

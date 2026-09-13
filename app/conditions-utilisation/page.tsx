@@ -8,14 +8,14 @@ export default function ConditionsUtilisation() {
         </div>
 
         <div className="rounded-xl border bg-violet-50 border-violet-200 p-5 text-sm text-violet-800">
-          Cet espace d&apos;administration est réservé exclusivement au personnel habilité d&apos;Ibogha Health.
+          Cet espace d&apos;administration est réservé exclusivement au personnel habilité d&apos;Ibogha241 Health.
           Tout accès non autorisé est susceptible de poursuites pénales conformément au droit gabonais.
         </div>
 
         {[
           {
             title: '1. Accès réservé',
-            content: `L'accès à l'interface d'administration Ibogha Health est strictement réservé aux employés, prestataires et partenaires expressément autorisés par la direction d'Ibogha Health.
+            content: `L'accès à l'interface d'administration Ibogha241 Health est strictement réservé aux employés, prestataires et partenaires expressément autorisés par la direction d'Ibogha241 Health.
 
 Tout compte est nominatif et personnel. Le partage d'identifiants est strictement interdit. Tout accès est journalisé.`,
           },

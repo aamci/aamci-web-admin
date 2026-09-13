@@ -4,7 +4,7 @@ export function Logo({ className = "h-10 w-auto" }: { className?: string }) {
   return (
     <img
       src={LOGO_SRC}
-      alt="Ibogha 241"
+      alt="Ibogha241 241"
       className={`rounded-lg object-contain ${className}`}
     />
   );
