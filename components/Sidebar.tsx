@@ -10,7 +10,6 @@ import {
   Calendar,
   ShieldCheck,
   LogOut,
-  Activity,
   CreditCard,
   Stethoscope,
   Building2,
@@ -28,6 +27,7 @@ import {
   Flag,
   History,
   Terminal,
+  X,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
@@ -49,7 +49,7 @@ const navGroups = [
       { href: '/finances', label: 'Finances', icon: Wallet },
       { href: '/contracts', label: 'Contrats', icon: FileText },
       { href: '/reviews', label: 'Avis médecins', icon: Star },
-      { href: '/waitlist', label: 'Liste d\'attente', icon: Clock },
+      { href: '/waitlist', label: "Liste d'attente", icon: Clock },
       { href: '/questionnaires', label: 'Questionnaires', icon: FileQuestion },
       { href: '/tickets', label: 'Tickets support', icon: MessageSquare },
       { href: '/reports', label: 'Signalements', icon: Flag },
@@ -75,16 +75,30 @@ const navGroups = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  return (
-    <aside className="flex h-screen w-60 flex-col border-r border-border bg-card overflow-y-auto">
+  const content = (
+    <aside className="flex h-full w-60 flex-col border-r border-border bg-card overflow-y-auto">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border shrink-0">
         <Logo className="h-10 w-auto" />
-        <span className="font-semibold text-sm tracking-tight text-muted-foreground">Admin</span>
+        <span className="font-semibold text-sm tracking-tight text-muted-foreground flex-1">Admin</span>
+        {/* Close button on mobile */}
+        {onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden -mr-1 rounded-lg p-1 text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -99,6 +113,7 @@ export function Sidebar() {
                 <Link
                   key={href}
                   href={href}
+                  onClick={onMobileClose}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
@@ -130,5 +145,25 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden lg:flex h-screen">{content}</div>
+
+      {/* Mobile: drawer overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={onMobileClose}
+          />
+          {/* Drawer */}
+          <div className="relative flex h-full">{content}</div>
+        </div>
+      )}
+    </>
   );
 }
